@@ -1,6 +1,8 @@
 import consul
 
 from urllib.parse import urlparse
+
+import pytest
 from vyper import v
 
 
@@ -15,8 +17,8 @@ def pytest_configure(config):
     If consul-url is not specified, reads config files stored at {test-rootdir/config/env.json}
 
     """
-    consul_path, token, env = config.option.consul_path, config.option.consul_token, config.option.env
     config_type = 'json'
+    env = config.option.env
 
     v.set_config_type(config_type)
 
@@ -25,10 +27,9 @@ def pytest_configure(config):
     if is_remote:
         c = urlparse(config.option.consul_url)
 
-        host, port, scheme = c.hostname, c.port, c.scheme
-
-        client = consul.Consul(host, port, scheme, token)
-        path = f'{consul_path}/{env}'
+        token = config.option.consul_token
+        client = consul.Consul(host=c.hostname, port=c.port, scheme=c.scheme, token=token)
+        path = f'{config.option.consul_path}/{env}'
         provider = 'consul'
 
         v.add_remote_provider(provider, client, path)
@@ -36,7 +37,7 @@ def pytest_configure(config):
     else:
         path = f'{config.rootdir.strpath}/config'
 
-        v.set_config_name(env)
+        v.set_config_name(config.option.env)
         v.add_config_path(path)
 
         try:
